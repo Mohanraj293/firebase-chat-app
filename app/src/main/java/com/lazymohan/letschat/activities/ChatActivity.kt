@@ -85,10 +85,11 @@ class ChatActivity : AppCompatActivity() {
                 chatMessages.add(chatMessage)
               }
             }
-            if(count==0) chatAdapter.notifyDataSetChanged()
+            chatMessages.sortWith { a, b -> a.dateObject!!.compareTo(b.dateObject) }
+            if (count == 0) chatAdapter.notifyDataSetChanged()
             else {
-              chatAdapter.notifyItemRangeInserted(chatMessages.size,chatMessages.size)
-              binding.chatRecyclerView.smoothScrollToPosition(chatMessages.size -1)
+              chatAdapter.notifyItemRangeInserted(chatMessages.size, chatMessages.size)
+              binding.chatRecyclerView.smoothScrollToPosition(chatMessages.size - 1)
             }
           }
           binding.progressBar.visibility = View.GONE
@@ -112,10 +113,11 @@ class ChatActivity : AppCompatActivity() {
                 chatMessages.add(chatMessage)
               }
             }
-            if(count==0) chatAdapter.notifyDataSetChanged()
+            chatMessages.sortWith { a, b -> a.dateObject!!.compareTo(b.dateObject) }
+            if (count == 0) chatAdapter.notifyDataSetChanged()
             else {
-              chatAdapter.notifyItemRangeInserted(chatMessages.size,chatMessages.size)
-              binding.chatRecyclerView.smoothScrollToPosition(chatMessages.size -1)
+              chatAdapter.notifyItemRangeInserted(chatMessages.size, chatMessages.size)
+              binding.chatRecyclerView.smoothScrollToPosition(chatMessages.size - 1)
             }
           }
           binding.progressBar.visibility = View.GONE
