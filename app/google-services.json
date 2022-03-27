@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1087164299544",
+    "project_id": "chat-app-7b11e",
+    "storage_bucket": "chat-app-7b11e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1087164299544:android:9cdd8cefb05b9b3f23866d",
+        "android_client_info": {
+          "package_name": "com.lazymohan.letschat"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1087164299544-21ouhnclin7vbbrgq6r26bca2bn71b7n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSuS2tL-VaqL8Xu73OIHT0HbiPsUkndMI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1087164299544-21ouhnclin7vbbrgq6r26bca2bn71b7n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
