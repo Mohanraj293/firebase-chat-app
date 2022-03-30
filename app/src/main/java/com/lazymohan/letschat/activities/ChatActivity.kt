@@ -26,6 +26,7 @@ class ChatActivity : AppCompatActivity() {
   private lateinit var chatAdapter: ChatAdapter
   private lateinit var preferenceManager: PreferenceManager
   private lateinit var database: FirebaseFirestore
+  private var conversionId: String? = null
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -58,17 +59,44 @@ class ChatActivity : AppCompatActivity() {
     val message = hashMapOf<String, Any>()
     preferenceManager.getString(Constants.KEY_USER_ID)
         ?.let { message.put(Constants.KEY_SENDER_ID, it) }
-    receivedUser.id?.let { message.put(Constants.KEY_RECEIVED_ID, it) }
+    receivedUser.id?.let { message.put(Constants.KEY_RECEIVER_ID, it) }
     message[Constants.KEY_MESSAGE] = binding.inputMessage.text.toString()
     message[Constants.KEY_TIMESTAMP] = Date()
     database.collection(Constants.KEY_COLLECTION_CHAT).add(message)
+    if (conversionId != null) {
+      updateConversion(binding.inputMessage.text.toString())
+    } else {
+      val conversion = mutableMapOf<String, Any>()
+      preferenceManager.getString(Constants.KEY_USER_ID)
+          ?.let { conversion.put(Constants.KEY_SENDER_ID, it) }
+      preferenceManager.getString(Constants.KEY_NAME)
+          ?.let { conversion.put(Constants.KEY_SENDER_NAME, it) }
+      preferenceManager.getString(Constants.KEY_IMAGE)
+          ?.let { conversion.put(Constants.KEY_SENDER_IMAGE, it) }
+      receivedUser.id?.let {
+        conversion.put(Constants.KEY_RECEIVER_ID, it)
+      }
+      receivedUser.name?.let {
+        conversion.put(Constants.KEY_RECEIVER_NAME, it)
+      }
+      receivedUser.image?.let {
+        conversion.put(Constants.KEY_RECEIVER_IMAGE, it)
+      }
+      binding.inputMessage.text.toString().let {
+        conversion.put(Constants.KEY_LAST_MESSAGE, it)
+      }
+      Date().let {
+        conversion.put(Constants.KEY_TIMESTAMP, it)
+      }
+      addConversion(conversion as HashMap<String, Any>)
+    }
     binding.inputMessage.text = null
   }
 
   private fun listenMessage() {
     database.collection(Constants.KEY_COLLECTION_CHAT)
         .whereEqualTo(Constants.KEY_SENDER_ID, preferenceManager.getString(Constants.KEY_USER_ID))
-        .whereEqualTo(Constants.KEY_RECEIVED_ID, receivedUser.id)
+        .whereEqualTo(Constants.KEY_RECEIVER_ID, receivedUser.id)
         .addSnapshotListener { value, error ->
           if (error != null) return@addSnapshotListener
           if (value != null) {
@@ -77,7 +105,7 @@ class ChatActivity : AppCompatActivity() {
               if (dc.type == DocumentChange.Type.ADDED) {
                 val chatMessage = ChatMessage()
                 chatMessage.senderId = dc.document.getString(Constants.KEY_SENDER_ID)
-                chatMessage.receiverId = dc.document.getString(Constants.KEY_RECEIVED_ID)
+                chatMessage.receiverId = dc.document.getString(Constants.KEY_RECEIVER_ID)
                 chatMessage.message = dc.document.getString(Constants.KEY_MESSAGE)
                 chatMessage.dateObject = dc.document.getDate(Constants.KEY_TIMESTAMP)
                 chatMessage.dateTime = dc.document.getDate(Constants.KEY_TIMESTAMP)
@@ -93,10 +121,13 @@ class ChatActivity : AppCompatActivity() {
             }
           }
           binding.progressBar.visibility = View.GONE
+          if (conversionId == null) {
+            checkForConversion()
+          }
         }
     database.collection(Constants.KEY_COLLECTION_CHAT)
         .whereEqualTo(Constants.KEY_SENDER_ID, receivedUser.id)
-        .whereEqualTo(Constants.KEY_RECEIVED_ID, preferenceManager.getString(Constants.KEY_USER_ID))
+        .whereEqualTo(Constants.KEY_RECEIVER_ID, preferenceManager.getString(Constants.KEY_USER_ID))
         .addSnapshotListener { value, error ->
           if (error != null) return@addSnapshotListener
           if (value != null) {
@@ -105,7 +136,7 @@ class ChatActivity : AppCompatActivity() {
               if (dc.type == DocumentChange.Type.ADDED) {
                 val chatMessage = ChatMessage()
                 chatMessage.senderId = dc.document.getString(Constants.KEY_SENDER_ID)
-                chatMessage.receiverId = dc.document.getString(Constants.KEY_RECEIVED_ID)
+                chatMessage.receiverId = dc.document.getString(Constants.KEY_RECEIVER_ID)
                 chatMessage.message = dc.document.getString(Constants.KEY_MESSAGE)
                 chatMessage.dateObject = dc.document.getDate(Constants.KEY_TIMESTAMP)
                 chatMessage.dateTime = dc.document.getDate(Constants.KEY_TIMESTAMP)
@@ -121,6 +152,9 @@ class ChatActivity : AppCompatActivity() {
             }
           }
           binding.progressBar.visibility = View.GONE
+          if (conversionId == null) {
+            checkForConversion()
+          }
         }
   }
 
@@ -145,5 +179,53 @@ class ChatActivity : AppCompatActivity() {
 
   private fun getReadableDateTime(date: Date): String {
     return SimpleDateFormat("MMMM dd, yyyy - hh:mm a", Locale.getDefault()).format(date)
+  }
+
+  private fun addConversion(conversion: HashMap<String, Any>) {
+    database.collection(Constants.KEY_COLLECTION_CONVERSATIONS)
+        .add(conversion)
+        .addOnSuccessListener {
+          conversionId = it.id
+        }
+  }
+
+  private fun updateConversion(message: String) {
+    val documentReference = conversionId?.let {
+      database.collection(Constants.KEY_COLLECTION_CONVERSATIONS)
+          .document(it)
+    }
+    documentReference?.update(
+        Constants.KEY_LAST_MESSAGE, message,
+        Constants.KEY_TIMESTAMP, Date()
+    )
+  }
+
+  private fun checkConversationRemotely(
+    senderId: String,
+    receiverId: String
+  ) {
+    database.collection(Constants.KEY_COLLECTION_CONVERSATIONS)
+        .whereEqualTo(Constants.KEY_SENDER_ID, senderId)
+        .whereEqualTo(Constants.KEY_RECEIVER_ID, receiverId)
+        .get()
+        .addOnCompleteListener {
+          if (it.isSuccessful && it.result != null && it.result.documents.size > 0) {
+            val documentSnapshot = it.result.documents[0]
+            conversionId = documentSnapshot.id
+          }
+        }
+  }
+
+  private fun checkForConversion() {
+    if (chatMessages.size != 0) {
+      receivedUser.id?.let {
+        preferenceManager.getString(Constants.KEY_USER_ID)
+            ?.let { it1 -> checkConversationRemotely(it1, it) }
+      }
+      receivedUser.id?.let {
+        preferenceManager.getString(Constants.KEY_USER_ID)
+            ?.let { it1 -> checkConversationRemotely(it, it1) }
+      }
+    }
   }
 }
